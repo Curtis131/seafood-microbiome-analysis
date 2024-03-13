@@ -1,1 +1,1 @@
-# BINF511 term project
+# BINF531 term project
