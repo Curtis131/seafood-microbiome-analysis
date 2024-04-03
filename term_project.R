@@ -40,7 +40,7 @@ rm_samples <- function(x,y){
 
 fnRs <- rm_samples(fnRs,fnFs)
 
-if(Sys.info()['sysname'] == "Linux" || Sys.info()['sysname'] == "macOs"){
+if(Sys.info()['sysname'] == "Linux" || Sys.info()['sysname'] == "Darwin"){
   out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, truncLen = c(240,230), maxN = 0,
                        maxEE = c(2,2),truncQ = 2, rm.phix = TRUE,
                        compress = TRUE, multithread = TRUE) 
@@ -50,4 +50,71 @@ if(Sys.info()['sysname'] == "Linux" || Sys.info()['sysname'] == "macOs"){
                        compress = TRUE, multithread = FALSE) 
 }
 
-head(out)
+head(out) # should we remove samples with very few (<100) reads?
+
+# parametric error rate
+errF <- learnErrors(filtFs, multithread=TRUE)
+errR <- learnErrors(filtRs, multithread=TRUE)
+
+errorplot.forward <- plotErrors(errF,nominalQ = TRUE)
+errorplot.reverse <- plotErrors(errR,nominalQ = TRUE)
+
+# dereplication
+derepFs <- derepFastq(filtFs,verbose = TRUE)
+derepRs <- derepFastq(filtRs,verbose = TRUE)
+
+names(derepFs) <- sample.names
+names(derepRs) <- sample.names
+
+# Sample inference
+## here, the samples are analyzed separately.
+## we can also pool the samples before analysis, which is easier to find rare varients with low reads.
+## let me know which one you think is better.
+dadaFs <- dada(derepFs, err=errF, multithread = TRUE)
+dadaRs <- dada(derepRs, err=errR, multithread = TRUE)
+
+
+# Merge pair read
+mergers <- mergePairs(dadaFs,derepFs,dadaRs,derepRs,verbose = TRUE)
+
+# make sequence table
+seqtab <- makeSequenceTable(mergers)
+
+dim(seqtab)
+table(nchar(getSequences(seqtab))) #make sure length of ASV do not exceed length of V4 amplicon (~464bp)
+## I'm debating whether or not should I covert the ASV table to OTU table.
+
+# Remove chimeras
+seqtab.nochim <- removeBimeraDenovo(seqtab, method = "consensus", multithread=TRUE, verbose = TRUE)
+chimera.precentage <- sum(seqtab.nochim)/sum(seqtab)
+
+# preprocessing conclusions
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs,getN), sapply(dadaRs,getN), 
+               sapply(mergers,getN), rowSums(seqtab.nochim))
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR","merged", "nochim")
+rownames(track) <- sample.names
+write.csv(track, file = "preprocessingresult.csv")
+
+# Assign taxonomy
+## I'm using the SLIVA database
+download.file(url = "https://zenodo.org/records/4587955/files/silva_nr99_v138.1_train_set.fa.gz",
+              destfile = paste0(wd,"/silva_nr99_v138.1_train_set.fa.gz"),
+              method = "curl",
+              quiet = FALSE)
+
+download.file(url = "https://zenodo.org/records/4587955/files/silva_species_assignment_v138.1.fa.gz",
+              destfile = paste0(wd,"/silva_species_assignment_v138.1.fa.gz"),
+              method = "curl",
+              quiet = FALSE)
+
+taxa <- assignTaxonomy(seqtab.nochim, "silva_nr99_v138.1_train_set.fa.gz", multithread = TRUE)
+taxa <- addSpecies(taxa, "silva_species_assignment_v138.1.fa.gz") # we don't necessarily need to do this since I'm only interested in genus distribution.
+
+write.csv(taxa,file = "taxa.csv")
+
+# MOVING ON TO DATA ANALYSIS ##################################
+
+
+
+
