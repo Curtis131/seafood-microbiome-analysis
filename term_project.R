@@ -41,11 +41,13 @@ rm_samples <- function(x,y){
 fnRs <- rm_samples(fnRs,fnFs)
 
 if(Sys.info()['sysname'] == "Linux" || Sys.info()['sysname'] == "Darwin"){
-  out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, truncLen = c(240,230), maxN = 0,
+  out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, maxN = 0,
+                       maxLen = 253, minLen = 253,
                        maxEE = c(2,2),truncQ = 2, rm.phix = TRUE,
                        compress = TRUE, multithread = TRUE) 
 } else{
-  out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, truncLen = c(240,230), maxN = 0,
+  out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, maxN = 0,
+                       maxLen = 253, minLen = 253,
                        maxEE = c(2,2),truncQ = 2, rm.phix = TRUE,
                        compress = TRUE, multithread = FALSE) 
 }
