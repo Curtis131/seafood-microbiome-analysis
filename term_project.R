@@ -48,7 +48,7 @@ if(Sys.info()['sysname'] == "Linux" || Sys.info()['sysname'] == "Darwin"){
 } else{
   out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, maxN = 0,
                        maxLen = 251, minLen = 251,
-                       maxEE = c(4,4),truncQ = 2, rm.phix = TRUE,
+                       maxEE = c(2,2),truncQ = 2, rm.phix = TRUE,
                        compress = TRUE, multithread = FALSE) 
 }
 
@@ -111,7 +111,7 @@ download.file(url = "https://zenodo.org/records/4587955/files/silva_species_assi
               quiet = FALSE)
 
 taxa <- assignTaxonomy(seqtab.nochim, "silva_nr99_v138.1_train_set.fa.gz", multithread = TRUE)
-# taxa <- addSpecies(taxa, "silva_species_assignment_v138.1.fa.gz") # we don't necessarily need to do this since I'm only interested in genus distribution.
+taxa <- addSpecies(taxa, "silva_species_assignment_v138.1.fa.gz") # we don't necessarily need to do this since I'm only interested in genus distribution.
 
 write.csv(taxa,file = "taxa.csv")
 
