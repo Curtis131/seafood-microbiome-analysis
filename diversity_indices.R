@@ -1,23 +1,44 @@
 # Load necessary libraries
 library(phyloseq)
 library(ggplot2)
+library(magrittr)
+library(dplyr)
 
 # Load the ASV and taxonomy data
-asv_data <- read.csv("seqtab.nochim.csv", row.names = 1)
-taxonomy_data <- read.csv("taxa.csv", row.names = 1)
+asv_data <- read.csv("ASV.csv",row.names = 1)
+asv_data <- asv_data[-106,] #remove negative control
+taxonomy_data <- read.csv("taxa.csv",row.names = 1)
+sample_data <- sample_data(read.csv("merge.csv",row.names = 1))
+sample_data <- na.omit(sample_data)
+time <- as.factor(sample_data$time.day.)
+sample_data <- sample_data[order(sample_data$time.day.)]
 
 # Convert taxonomy data to matrix and specify column names for Phyloseq
 taxonomy_matrix <- as.matrix(taxonomy_data)
 colnames(taxonomy_matrix) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 
-# Create an otu_table object from the ASV data
+# create phyloseq objects
 otu_table <- otu_table(as.matrix(asv_data), taxa_are_rows = FALSE)
+tax.table <- tax_table(taxonomy_matrix)
+  
+physeq <- phyloseq(otu_table,tax.table,sample_data)
+t.genus <- tax_glom(physeq, taxrank = "Genus") # agglomerate genus
+# find top 10 abundence genus
+top10 <- names(sort(taxa_sums(t.genus),decreasing = TRUE))[1:10]
+t.genus.prop <- transform_sample_counts(t.genus,function(x) x/sum(x))
+t.genus.prop.top10 <- prune_taxa(top10,t.genus.prop)
+## plot
+abudence <- t.genus.prop.top10 %>%
+  subset_samples(treatment == "control") %>%
+  plot_bar(fill = "Genus") +
+  facet_grid(~treatment) +
+  theme_classic() +
+  labs(title = "relative abudence of top 10 genus", 
+       x = "samples", y = "relative abundence")
 
-# Create a tax_table object from the taxonomy data
-tax_table <- tax_table(taxonomy_matrix)
+abudence$data<- abudence$data[order(abudence$data$time.day.),]
 
-# Create the Phyloseq object
-physeq <- phyloseq(otu_table, tax_table)
+dev.off()
 
 # Calculate Chao1 diversity
 chao1_diversity <- estimate_richness(physeq, measures = "Chao1")

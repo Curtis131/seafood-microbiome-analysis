@@ -17,3 +17,5 @@ treatment <- factor(treatment,levels = c("A","B","C","D","E"),
 
 
 bacterocin.treatment <- data.frame(sample.name,time,treatment)
+
+write.csv(bacterocin.treatment,"bacterocin_treatment")
