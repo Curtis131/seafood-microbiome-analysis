@@ -36,7 +36,7 @@ abudence_plot <- t.genus.prop.top10 %>%
   subset_samples(treatment == c("control")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
   plot_bar(fill = "Genus") +
   theme(axis.text.x = element_text()) +
-  facet_grid(~treatment) +
+  facet_grid(time.day.~treatment) +
   theme_classic() +
   labs(title = "relative abudence of top 10 genus", 
        x = "samples", y = "relative abundence")
@@ -44,6 +44,7 @@ abudence_plot <- t.genus.prop.top10 %>%
 abudence_plot$data$Sample <- factor(abudence_plot$data$Sample,
                                     levels = rownames(sample_data),
                                     ordered = TRUE)
+print(abudence_plot)
 dev.off()
 
 # Calculate Chao1 diversity
