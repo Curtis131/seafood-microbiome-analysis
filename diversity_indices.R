@@ -11,7 +11,7 @@ taxonomy_data <- read.csv("taxa.csv",row.names = 1)
 sample_data <- sample_data(read.csv("merge.csv",row.names = 1))
 sample_data <- na.omit(sample_data)
 time <- as.factor(sample_data$time.day.)
-sample_data <- sample_data[order(sample_data$time.day.)]
+asv_data <- asv_data[match(rownames(sample_data),rownames(asv_data)),]
 
 # Convert taxonomy data to matrix and specify column names for Phyloseq
 taxonomy_matrix <- as.matrix(taxonomy_data)
@@ -28,16 +28,22 @@ top10 <- names(sort(taxa_sums(t.genus),decreasing = TRUE))[1:10]
 t.genus.prop <- transform_sample_counts(t.genus,function(x) x/sum(x))
 t.genus.prop.top10 <- prune_taxa(top10,t.genus.prop)
 ## plot
-abudence <- t.genus.prop.top10 %>%
-  subset_samples(treatment == "control") %>%
+t.genus.prop.top10@sam_data$time.day. <- factor(t.genus.prop.top10@sam_data$time.day.)
+t.genus.prop.top10@sam_data <- t.genus.prop.top10@sam_data[order(t.genus.prop.top10@sam_data$time.day.)]
+t.genus.prop.top10@otu_table <- t.genus.prop.top10@otu_table[match(rownames(t.genus.prop.top10@sam_data),rownames(t.genus.prop.top10@otu_table)),]
+
+abudence_plot <- t.genus.prop.top10 %>%
+  subset_samples(treatment == c("control")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
   plot_bar(fill = "Genus") +
+  theme(axis.text.x = element_text()) +
   facet_grid(~treatment) +
   theme_classic() +
   labs(title = "relative abudence of top 10 genus", 
        x = "samples", y = "relative abundence")
 
-abudence$data<- abudence$data[order(abudence$data$time.day.),]
-
+abudence_plot$data$Sample <- factor(abudence_plot$data$Sample,
+                                    levels = rownames(sample_data),
+                                    ordered = TRUE)
 dev.off()
 
 # Calculate Chao1 diversity
