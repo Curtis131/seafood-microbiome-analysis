@@ -33,11 +33,13 @@ t.genus.prop.top10@sam_data <- t.genus.prop.top10@sam_data[order(t.genus.prop.to
 t.genus.prop.top10@otu_table <- t.genus.prop.top10@otu_table[match(rownames(t.genus.prop.top10@sam_data),rownames(t.genus.prop.top10@otu_table)),]
 
 abudence_plot <- t.genus.prop.top10 %>%
-  subset_samples(treatment == c("control")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
+  subset_samples(treatment %in% c("control","Nisin","Pediocin","Divergicin","MicrocinJ25")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
   plot_bar(fill = "Genus") +
-  theme(axis.text.x = element_text()) +
-  facet_grid(time.day.~treatment) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  #facet_grid(~treatment) +
+  geom_bar(aes(),stat = "identity",position = "stack") +
   theme_classic() +
+  coord_flip()
   labs(title = "relative abudence of top 10 genus", 
        x = "samples", y = "relative abundence")
 
@@ -45,22 +47,29 @@ abudence_plot$data$Sample <- factor(abudence_plot$data$Sample,
                                     levels = rownames(sample_data),
                                     ordered = TRUE)
 print(abudence_plot)
-dev.off()
+  dev.off()
 
 # Calculate Chao1 diversity
-chao1_diversity <- estimate_richness(physeq, measures = "Chao1")
+bacterocin_exp <- subset_samples(physeq, 
+                                 treatment %in% c("control","Nisin","Pediocin","Divergicin","MicrocinJ25"))
+chao1_diversity <- estimate_richness(bacterocin_exp, measures = "Chao1")
 
 # Add sample names as a column
 chao1_diversity$Sample <- rownames(chao1_diversity)
+chao1_diversity$treatment <- bacterocin_exp@sam_data$treatment
 
 # Plot Chao1 diversity
-ggplot(chao1_diversity, aes(x = Sample, y = Chao1)) +
-  geom_bar(stat = "identity") +
+chao1_plot <- ggplot(chao1_diversity, aes(x = Sample, y = Chao1, fill = treatment)) +
+  geom_bar(stat = "identity")+
   theme_minimal() +
   xlab("Sample") +
   ylab("Chao1 Diversity Index") +
+  coord_flip()
   ggtitle("Chao1 Diversity Across Samples")
 
+chao1_plot$data$Sample <- factor(chao1_plot$data$Sample,levels = chao1_plot$data$Sample,
+                                 ordered = TRUE)
+print(chao1_plot)
 # Calculate Shannon diversity
 shannon_diversity <- estimate_richness(physeq, measures = "Shannon")
 
