@@ -64,45 +64,61 @@ chao1_plot <- ggplot(chao1_diversity, aes(x = Sample, y = Chao1, fill = treatmen
   theme_minimal() +
   xlab("Sample") +
   ylab("Chao1 Diversity Index") +
-  coord_flip()
+  coord_flip() +
   ggtitle("Chao1 Diversity Across Samples")
 
 chao1_plot$data$Sample <- factor(chao1_plot$data$Sample,levels = chao1_plot$data$Sample,
                                  ordered = TRUE)
 print(chao1_plot)
 # Calculate Shannon diversity
-shannon_diversity <- estimate_richness(physeq, measures = "Shannon")
+shannon_diversity <- estimate_richness(bacterocin_exp, measures = "Shannon")
 
 # Add sample names as a column
 shannon_diversity$Sample <- rownames(shannon_diversity)
+shannon_diversity$treatment <- bacterocin_exp@sam_data$treatment
 
 # Plot Shannon diversity
-ggplot(shannon_diversity, aes(x = Sample, y = Shannon)) +
+shannon_plot <- ggplot(shannon_diversity, aes(x = Sample, y = Shannon, fill = treatment)) +
+  coord_flip() +
   geom_bar(stat = "identity") +
   theme_minimal() +
   xlab("Sample") +
   ylab("Shannon Diversity Index") +
   ggtitle("Shannon Diversity Across Samples") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Adjust text angle for better readability if necessary
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))# Adjust text angle for better readability if necessary
 
+shannon_plot$data$Sample <- factor(shannon_plot$data$Sample,levels = shannon_plot$data$Sample,
+                                   ordered = TRUE)
+print(shannon_plot)
 # Calculate Simpson diversity
-simpson_diversity <- estimate_richness(physeq, measures = "Simpson")
+simpson_diversity <- estimate_richness(bacterocin_exp, measures = "Simpson")
 
 # Add sample names as a column
 simpson_diversity$Sample <- rownames(simpson_diversity)
+simpson_diversity$treatment <- bacterocin_exp@sam_data$treatment
 # Plot Simpson diversity
-ggplot(simpson_diversity, aes(x = Sample, y = Simpson)) +
+simpson_diversity_plot <- 
+  ggplot(simpson_diversity, aes(x = Sample, y = Simpson, fill = treatment)) +
   geom_bar(stat = "identity") +
+  coord_flip() +
   theme_minimal() +
   xlab("Sample") +
   ylab("Simpson Diversity Index") +
   ggtitle("Simpson Diversity Across Samples") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Adjust text angle for better readability if necessary
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+simpson_diversity_plot$data$Sample <-  factor(simpson_diversity_plot$data$Sample,
+                                              levels = simpson_diversity_plot$data$Sample,
+                                              ordered = TRUE)
+
+print(simpson_diversity_plot)
+# Adjust text angle for better readability if necessary
 
 # Assuming 'physeq' is your phyloseq object
-chao1_diversity <- estimate_richness(physeq, measures = "Chao1")
-shannon_diversity <- estimate_richness(physeq, measures = "Shannon")
-simpson_diversity <- estimate_richness(physeq, measures = "Simpson")
+chao1_diversity <- estimate_richness(bacterocin_exp, measures = "Chao1")
+shannon_diversity <- estimate_richness(bacterocin_exp, measures = "Shannon")
+simpson_diversity <- estimate_richness(bacterocin_exp, measures = "Simpson")
+observed_diversity <- estimate_richness(bacterocin_exp, measures = "Observed")
 
 # Combine all indices into one data frame
 combined_indices <- data.frame(Sample = rownames(chao1_diversity),
