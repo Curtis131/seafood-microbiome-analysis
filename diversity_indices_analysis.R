@@ -8,8 +8,9 @@ sample_meta <- sample_meta[sample_meta$treatment %in%
                              c("control","Nisin","Pediocin","Divergicin","MicrocinJ25"),]
 
 
-combined_indices$time <- sample_meta$time.day.
-combined_indices$treatment <- sample_meta$treatment
+
+combined_indices$time <- bacterocin_exp@sam_data$time.day.
+combined_indices$treatment <- bacterocin_exp@sam_data$treatment
 combined_indices$treatment <- factor(combined_indices$treatment)
 combined_indices$time <- factor(combined_indices$time)
 
@@ -22,6 +23,14 @@ combined_indices <- combined_indices %>%
     Simpson = mean(Simpson),
     Observed = mean(Observed)
   )
+
+# log transformation
+combined_indices <- combined_indices %>%
+  mutate( Chao1 = log(Chao1),
+          Shannon = log(Shannon) + 0.1590,
+          Simpson = log(Simpson) + 0.158972,
+          Observed = log(Observed))
+
 
 # anova chao1
 aof <- function(x){

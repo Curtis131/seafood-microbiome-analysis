@@ -141,6 +141,10 @@ plot_richness(bacterocin_exp, x = "treatment", measures = "Shannon") +
   geom_boxplot() +
   facet_grid(.~ time.day.)
 
+plot_richness(bacterocin_exp, x = "treatment", measures = "Observed") +
+  geom_boxplot() +
+  facet_grid(. ~ time.day.)
+
 
 # View the head of the combined table
 head(combined_indices)
