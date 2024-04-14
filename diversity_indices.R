@@ -3,6 +3,7 @@ library(phyloseq)
 library(ggplot2)
 library(magrittr)
 library(dplyr)
+library(SRS)
 
 # Load the ASV and taxonomy data
 asv_data <- read.csv("ASV.csv",row.names = 1)
@@ -12,16 +13,22 @@ sample_data <- sample_data(read.csv("merge.csv",row.names = 1))
 sample_data <- na.omit(sample_data)
 time <- as.factor(sample_data$time.day.)
 asv_data <- asv_data[match(rownames(sample_data),rownames(asv_data)),]
+asv_data <- t(asv_data)
+asv_data <- as.data.frame(asv_data)
+asv_data_SRS <- SRS(asv_data,277) # what Cmin????
+rownames(asv_data_SRS) <- rownames(asv_data)
+asv_data_SRS <- t(asv_data_SRS)
 
 # Convert taxonomy data to matrix and specify column names for Phyloseq
 taxonomy_matrix <- as.matrix(taxonomy_data)
 colnames(taxonomy_matrix) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 
 # create phyloseq objects
-otu_table <- otu_table(as.matrix(asv_data), taxa_are_rows = FALSE)
+otu_table <- otu_table(as.matrix(asv_data_SRS), taxa_are_rows = FALSE)
 tax.table <- tax_table(taxonomy_matrix)
   
 physeq <- phyloseq(otu_table,tax.table,sample_data)
+physeq <- prune_taxa(taxa_sums(physeq) > 0, physeq) # ASV with not counts
 t.genus <- tax_glom(physeq, taxrank = "Genus") # agglomerate genus
 # find top 10 abundence genus
 top10 <- names(sort(taxa_sums(t.genus),decreasing = TRUE))[1:10]
@@ -33,7 +40,8 @@ t.genus.prop.top10@sam_data <- t.genus.prop.top10@sam_data[order(t.genus.prop.to
 t.genus.prop.top10@otu_table <- t.genus.prop.top10@otu_table[match(rownames(t.genus.prop.top10@sam_data),rownames(t.genus.prop.top10@otu_table)),]
 
 abudence_plot <- t.genus.prop.top10 %>%
-  subset_samples(treatment %in% c("control","Nisin","Pediocin","Divergicin","MicrocinJ25")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
+  subset_samples(!rownames(t.genus.prop.top10@sam_data) %in% c("C2-0", "A3-3", "D1-6", "E3-6") &
+    treatment %in% c("control","Nisin","Pediocin","Divergicin","MicrocinJ25")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
   plot_bar(fill = "Genus") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   #facet_grid(~treatment) +
@@ -52,6 +60,7 @@ print(abudence_plot)
 # Calculate Chao1 diversity
 bacterocin_exp <- subset_samples(physeq, 
                                  treatment %in% c("control","Nisin","Pediocin","Divergicin","MicrocinJ25"))
+
 chao1_diversity <- estimate_richness(bacterocin_exp, measures = "Chao1")
 
 # Add sample names as a column
@@ -124,7 +133,15 @@ observed_diversity <- estimate_richness(bacterocin_exp, measures = "Observed")
 combined_indices <- data.frame(Sample = rownames(chao1_diversity),
                                Chao1 = chao1_diversity$Chao1,
                                Shannon = shannon_diversity$Shannon,
-                               Simpson = simpson_diversity$Simpson)
+                               Simpson = simpson_diversity$Simpson, 
+                               Observed = observed_diversity$Observed)
+
+# plots
+plot_richness(bacterocin_exp, x = "treatment", measures = "Shannon") +
+  geom_boxplot() +
+  facet_grid(.~ time.day.)
+
+
 # View the head of the combined table
 head(combined_indices)
 
