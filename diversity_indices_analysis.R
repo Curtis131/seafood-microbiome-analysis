@@ -27,14 +27,18 @@ combined_indices <- combined_indices %>%
 # log transformation
 combined_indices <- combined_indices %>%
   mutate( Chao1 = log(Chao1),
-          Shannon = log(Shannon) + 0.1590,
-          Simpson = log(Simpson) + 0.158972,
+          Shannon = log(Shannon),
+          Simpson = log(Simpson),
           Observed = log(Observed))
+
+combined_indices <- combined_indices %>%
+  mutate(Shannon = Shannon + 0.1590,
+         Simpson = Simpson + 0.943)
 
 
 # anova chao1
 aof <- function(x){
-  y <- anova(aov(x ~ treatment, data = combined_indices))
+  y <- anova(aov(x ~ treatment + as.factor(time), data = combined_indices))
   return(y)
 }
 

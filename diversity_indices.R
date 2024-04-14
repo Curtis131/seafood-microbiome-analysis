@@ -139,16 +139,37 @@ combined_indices <- data.frame(Sample = rownames(chao1_diversity),
 # plots
 plot_richness(bacterocin_exp, x = "treatment", measures = "Shannon") +
   geom_boxplot() +
+  ylab("Shannon") +
   facet_grid(.~ time.day.)
 
 plot_richness(bacterocin_exp, x = "treatment", measures = "Observed") +
   geom_boxplot() +
+  ylab("Observed") +
   facet_grid(. ~ time.day.)
 
+plot_richness(bacterocin_exp, x = "treatment", measures = "Simpson") +
+  ylab("Simpson") +
+  geom_boxplot() +
+  facet_grid(. ~ time.day., scales = "free_y")
 
+plot_richness(bacterocin_exp, x = "treatment", measures = "Chao1") +
+  ylab("Chao1") +
+  geom_boxplot() +
+  facet_grid(. ~ time.day., scales = "free")
 # View the head of the combined table
 head(combined_indices)
 
 # Export the combined table to a CSV file
 write.csv(combined_indices, "combined_diversity_indices.csv", row.names = FALSE)
 
+# beta diversity
+bc <- distance(bacterocin_exp, method = "bray")
+ordinate_bc <- ordinate(bacterocin_exp,method = "PCoA", distance = "bray")
+plot_ordination(bacterocin_exp,ordinate_bc, color = "treatment") +
+  geom_point(size = 4) +
+  stat_ellipse(aes(group = treatment))
+
+
+sample_dat_bc <- data.frame(sample_data(bacterocin_exp))
+sample_dat_bc$treatment <- factor(sample_dat_bc$treatment)
+permeanova_result <- adonis2(bc ~ treatment + time.day., data = sample_dat_bc, permutations = 999)
