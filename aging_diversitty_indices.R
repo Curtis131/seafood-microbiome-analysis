@@ -1,8 +1,6 @@
 library(phyloseq)
-library(ggplot2)
-library(magrittr)
-library(dplyr)
 library(SRS)
+library(tidyverse)
 
 
 asv_data <- read.csv("ASV.csv",row.names = 1)
@@ -14,7 +12,7 @@ time <- as.factor(sample_data$time.day.)
 asv_data <- asv_data[match(rownames(sample_data),rownames(asv_data)),]
 asv_data <- t(asv_data)
 asv_data <- as.data.frame(asv_data)
-asv_data_SRS <- SRS(asv_data,277) # what Cmin????
+asv_data_SRS <- SRS(asv_data,500) # what Cmin????
 rownames(asv_data_SRS) <- rownames(asv_data)
 asv_data_SRS <- t(asv_data_SRS)
 
@@ -40,7 +38,7 @@ t.genus.prop.top10@sam_data <- t.genus.prop.top10@sam_data[order(t.genus.prop.to
 t.genus.prop.top10@otu_table <- t.genus.prop.top10@otu_table[match(rownames(t.genus.prop.top10@sam_data),rownames(t.genus.prop.top10@otu_table)),]
 
 abudence_plot <- t.genus.prop.top10 %>%
-  subset_samples(!rownames(t.genus.prop.top10@sam_data) %in% c("C2-0", "A3-3", "D1-6", "E3-6") &
+  subset_samples(!rownames(t.genus.prop.top10@sam_data) %in% c("oc2a", "12c1a", "18c2c", "6c3c", "9c2a") &
                    treatment %in% c("c","s")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
   plot_bar(fill = "Genus") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
@@ -95,8 +93,41 @@ plot_richness(aging_experiment, x = "treatment", measures = "Chao1") +
 
 write.csv(combined_indices, "aging_combined_diversity_indices.csv", row.names = FALSE)
 
+
 bc <- distance(aging_experiment, method = "bray")
+
+bc.tibble <- bc %>%
+  as.matrix() %>%
+  as_tibble(rownames = "sample") %>%
+  pivot_longer(-sample) %>%
+  filter(sample < name) %>%
+  mutate(coho = str_replace(sample, ".*c.*", "coho"),
+         sockeye = str_replace(sample, ".*s.*","sockeye"),
+         time = as.numeric (str_replace(sample,"c.*|s.*", "")),
+         treatment = as.vector(str_match(sample,"[cs]"))) %>%
+         # day_c = str_replace(sample, "c.*",""),
+         # day_s = str_replace(sample, "s.*", "")) %>%
+  group_by(time, sample, treatment) %>%
+  summarize(median = median(value))%>%
+  ungroup()
+
+bc.tibble$replicate <- substr(bc.tibble$sample, nchar(bc.tibble$sample) -1, 
+                              nchar(bc.tibble$sample))
+bc.tibble$replicate[19] <- "1a"
+
+bc.tibble$time <- sort(bc.tibble$time, decreasing = FALSE)
+
+ggplot(data = bc.tibble, aes(x=time, y=median, color = treatment,
+                             group = paste0(replicate, treatment))) +
+  geom_line(size = 0.25) +
+  geom_smooth(aes(group = treatment), size = 3)
+
+
 ordinate_bc <- ordinate(aging_experiment,method = "PCoA", distance = "bray")
+plot_ordination(aging_experiment,ordinate_bc, color = "time.day.", shape = "treatment") +
+  geom_point(size = 4) +
+  stat_ellipse(aes(group = treatment))
+
 plot_ordination(aging_experiment,ordinate_bc, color = "treatment") +
   geom_point(size = 4) +
   stat_ellipse(aes(group = treatment))
