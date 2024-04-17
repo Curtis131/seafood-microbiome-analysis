@@ -172,4 +172,4 @@ plot_ordination(bacterocin_exp,ordinate_bc, color = "treatment") +
 
 sample_dat_bc <- data.frame(sample_data(bacterocin_exp))
 sample_dat_bc$treatment <- factor(sample_dat_bc$treatment)
-permeanova_result <- adonis2(bc ~ treatment + time.day., data = sample_dat_bc, permutations = 999)
+permeanova_result <- adonis2(bc ~ treatment + factor(time.day.), data = sample_dat_bc, permutations = 999)
