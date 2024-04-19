@@ -94,6 +94,53 @@ plot_richness(aging_experiment, x = "treatment", measures = "Chao1") +
 write.csv(combined_indices, "aging_combined_diversity_indices.csv", row.names = FALSE)
 
 
+ombined_indices$time <- aging_experiment@sam_data$time.day.
+combined_indices$treatment <- aging_experiment@sam_data$treatment
+combined_indices$treatment <- factor(combined_indices$treatment)
+combined_indices$time <- factor(combined_indices$time)
+
+# take average of replicates
+combined_indices <- combined_indices %>%
+  group_by(time,treatment) %>%
+  summarise(
+    Chao1 = mean(Chao1),
+    Shannon = mean(Shannon),
+    Simpson = mean(Simpson),
+    Observed = mean(Observed)
+  )
+
+# log transformation
+combined_indices <- combined_indices %>%
+  mutate( Chao1 = log(Chao1),
+          Shannon = log(Shannon),
+          Simpson = log(Simpson),
+          Observed = log(Observed))
+
+combined_indices <- combined_indices %>%
+  mutate(Shannon = Shannon + 0.4183205,
+         Simpson = Simpson + 1.448793)
+
+aof <- function(x){
+  y <- anova(aov(x ~ treatment + as.factor(time), data = combined_indices))
+  return(y)
+}
+
+aof.plot <- function(x,y){
+  plot <- ggplot(combined_indices, aes(x = treatment, y = x, fill = treatment)) +
+    geom_boxplot() +
+    # facet_wrap( ~ time, ncol = 2) +
+    theme_classic() + 
+    ylab(colnames(combined_indices[y])) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+  return(plot)
+}
+
+anova_chao1 <- aof(combined_indices$Chao1)
+anova_shannon <- aof(combined_indices$Shannon)
+anova_simpson <- aof(combined_indices$Simpson)
+anova_observed <- aof(combined_indices$Observed)
+
+# beta diversity
 bc <- distance(aging_experiment, method = "bray")
 
 bc.tibble <- bc %>%
