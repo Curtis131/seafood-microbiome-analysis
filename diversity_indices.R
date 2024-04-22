@@ -1,8 +1,6 @@
 # Load necessary libraries
 library(phyloseq)
-library(ggplot2)
-library(magrittr)
-library(dplyr)
+library(tidyverse)
 library(SRS)
 
 # Load the ASV and taxonomy data
@@ -41,10 +39,10 @@ t.genus.prop.top10@otu_table <- t.genus.prop.top10@otu_table[match(rownames(t.ge
 
 abudence_plot <- t.genus.prop.top10 %>%
   subset_samples(!rownames(t.genus.prop.top10@sam_data) %in% c("C2-0", "A3-3", "D1-6", "E3-6") &
-    treatment %in% c("control","Nisin","Pediocin","Divergicin","MicrocinJ25")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
+    treatment %in% c("control")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
   plot_bar(fill = "Genus") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  #facet_grid(~treatment) +
+  facet_grid(time.day.~treatment, scales = "free") +
   geom_bar(aes(),stat = "identity",position = "stack") +
   theme_classic() +
   coord_flip()
@@ -164,6 +162,41 @@ write.csv(combined_indices, "combined_diversity_indices.csv", row.names = FALSE)
 
 # beta diversity
 bc <- distance(bacterocin_exp, method = "bray")
+
+bc.tibble <- bc %>%
+  as.matrix() %>%
+  as_tibble(rownames = "sample") %>%
+  pivot_longer(-sample) %>%
+  filter(sample < name) %>%
+  mutate(time = as.numeric (str_extract(sample,"(?<=-)\\d+")),
+         treatment = as.vector((str_extract(sample,"^[A-Za-z]")))) %>%
+  # day_c = str_replace(sample, "c.*",""),
+  # day_s = str_replace(sample, "s.*", "")) %>%
+  group_by(time, sample, treatment) %>%
+  summarize(median = median(value))%>%
+  ungroup()
+
+bc.tibble$replicate <- substr(bc.tibble$sample, 2,2)
+
+bc.tibble$time <- sort(bc.tibble$time, decreasing = FALSE)
+
+# add treatment label
+bc.tibble <- bc.tibble %>%
+  mutate(treatment = case_when(
+    treatment == "A" ~ "control",
+    treatment == "B" ~ "Nisin",
+    treatment == "C" ~ "Pediocin",
+    treatment == "D" ~ "Divergicin", 
+    treatment == "E" ~ "MicrocinJ25"
+  ))
+
+## plot
+ggplot(data = bc.tibble, aes(x=time, y=median, color = treatment,
+                             group = paste0(replicate, treatment))) +
+  geom_line(size = 0.25) +
+  geom_smooth(aes(group = treatment), size = 3)
+
+
 ordinate_bc <- ordinate(bacterocin_exp,method = "PCoA", distance = "bray")
 plot_ordination(bacterocin_exp,ordinate_bc, color = "treatment") +
   geom_point(size = 4) +

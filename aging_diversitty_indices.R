@@ -16,6 +16,13 @@ asv_data_SRS <- SRS(asv_data,500) # what Cmin????
 rownames(asv_data_SRS) <- rownames(asv_data)
 asv_data_SRS <- t(asv_data_SRS)
 
+
+#rarefraction curve
+rarefracurve <- rarecurve(t(asv_data), step = 20, lwd = 0.6, label = FALSE,
+                          xlim = c(0,5000),
+                          ylim = c(0,100),
+                          main = "Rarefaction curve for all samples")
+
 taxonomy_matrix <- as.matrix(taxonomy_data)
 colnames(taxonomy_matrix) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 
@@ -37,9 +44,9 @@ t.genus.prop.top10@sam_data$time.day. <- factor(t.genus.prop.top10@sam_data$time
 t.genus.prop.top10@sam_data <- t.genus.prop.top10@sam_data[order(t.genus.prop.top10@sam_data$time.day.)]
 t.genus.prop.top10@otu_table <- t.genus.prop.top10@otu_table[match(rownames(t.genus.prop.top10@sam_data),rownames(t.genus.prop.top10@otu_table)),]
 
-abudence_plot <- t.genus.prop.top10 %>%
+abudence_plot_coho <- t.genus.prop.top10 %>%
   subset_samples(!rownames(t.genus.prop.top10@sam_data) %in% c("oc2a", "12c1a", "18c2c", "6c3c", "9c2a") &
-                   treatment %in% c("c","s")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
+                   treatment %in% c("c")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
   plot_bar(fill = "Genus") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   facet_grid(time.day.~treatment, scales = "free") +
@@ -49,11 +56,28 @@ abudence_plot <- t.genus.prop.top10 %>%
 labs(title = "relative abudence of top 10 genus", 
      x = "samples", y = "relative abundence")
 
-abudence_plot$data$Sample <- factor(abudence_plot$data$Sample,
+abudence_plot_coho$data$Sample <- factor(abudence_plot_coho$data$Sample,
                                     levels = rownames(sample_data),
                                     ordered = TRUE)
-print(abudence_plot)
+print(abudence_plot_coho)
 dev.off()
+
+abudence_plot_sockeye <- t.genus.prop.top10 %>%
+  subset_samples(!rownames(t.genus.prop.top10@sam_data) %in% c("oc2a", "12c1a", "18c2c", "6c3c", "9c2a") &
+                   treatment %in% "s" ) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
+  plot_bar(fill = "Genus") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  facet_grid(time.day.~treatment, scales = "free") +
+  geom_bar(aes(),stat = "identity",position = "stack") +
+  theme_classic() +
+  coord_flip()
+labs(title = "relative abudence of top 10 genus", 
+     x = "samples", y = "relative abundence")
+
+abudence_plot_sockeye$data$Sample <- factor(abudence_plot_sockeye$data$Sample,
+                                    levels = rownames(sample_data),
+                                    ordered = TRUE)
+print(abudence_plot_sockeye)
 
 
 #### alpha diversity
@@ -94,7 +118,7 @@ plot_richness(aging_experiment, x = "treatment", measures = "Chao1") +
 write.csv(combined_indices, "aging_combined_diversity_indices.csv", row.names = FALSE)
 
 
-ombined_indices$time <- aging_experiment@sam_data$time.day.
+combined_indices$time <- aging_experiment@sam_data$time.day.
 combined_indices$treatment <- aging_experiment@sam_data$treatment
 combined_indices$treatment <- factor(combined_indices$treatment)
 combined_indices$time <- factor(combined_indices$time)
