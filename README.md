@@ -1,4 +1,6 @@
-# BINF531 term project
+# Seafood microbiome analysis
+
+my pipeline for analysis of 16s amplicon sequencing data
 
 **before running the code, please:**
 - make sure you've installed biocondutor;
