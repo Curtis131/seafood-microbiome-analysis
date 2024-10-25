@@ -1,7 +1,7 @@
 # setting up working enviroment
-wd <- "~/Documents/school/Statistical Bioinformatics/term_project"
+wd <- "/home/zys/Documents/seafood-microbiome-analysis"
 setwd(wd)
-path <- paste(wd,"/20240328_095203/Fastq", sep = "")
+path <- "/home/zys/Documents/miseq_results/20241015_184250/Fastq"
 
 
 # preprocessing
@@ -24,14 +24,15 @@ plotQualityProfile(fnRs[47:48]) # trim last 20 nt (230 - 250)
 filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
 filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 
-## there are 4 samples that only have reverse reads but no forward reads.
-## I'll check if the data didn't upload properly or there weren't any forward reads at the first place.
-## For now, I'll remove the 4 samples.
+
 sample.names.r <- sapply(strsplit(basename(fnRs), "_"), '[',1)
 rm_samples <- function(x,y){
   sample.names.r <- sapply(strsplit(basename(x), "_"), '[',1)
   sample.names <- sapply(strsplit(basename(y), "_"), '[',1)
   diff <- setdiff(sample.names.r,sample.names)
+  if (length(diff) == 0){
+    return(x)
+  }
   pattern <- paste(diff,collapse = "|")
   index_to_rm <- grep(pattern,x)
   x.rm <- x[-index_to_rm]
@@ -54,19 +55,24 @@ if(Sys.info()['sysname'] == "Linux" || Sys.info()['sysname'] == "Darwin"){
 
 head(out) # should we remove samples with very few (<100) reads?
 
+# remove samples with low reads
+notvalidsamples <- which(out[,2] < 100)
+sample_ids <- sample_ids[-notvalidsamples]
+filtFs <- filtFs[-notvalidsamples]
+filtRs <- filtRs[-notvalidsamples]
 # parametric error rate
 errF <- learnErrors(filtFs, multithread=TRUE)
 errR <- learnErrors(filtRs, multithread=TRUE)
 
-errorplot.forward <- plotErrors(errF,nominalQ = TRUE)
+outerrorplot.forward <- plotErrors(errF,nominalQ = TRUE)
 errorplot.reverse <- plotErrors(errR,nominalQ = TRUE)
 
 # dereplication
 derepFs <- derepFastq(filtFs,verbose = TRUE)
 derepRs <- derepFastq(filtRs,verbose = TRUE)
 
-names(derepFs) <- sample.names
-names(derepRs) <- sample.names
+names(derepFs) <- sample.names[-notvalidsamples]
+names(derepRs) <- sample.names[-notvalidsamples]
 
 # Sample inference
 ## here, the samples are analyzed separately.
@@ -92,11 +98,11 @@ chimera.precentage <- sum(seqtab.nochim)/sum(seqtab)
 
 # preprocessing conclusions
 getN <- function(x) sum(getUniques(x))
-track <- cbind(out, sapply(dadaFs,getN), sapply(dadaRs,getN), 
+track <- cbind(out[-notvalidsamples,], sapply(dadaFs,getN), sapply(dadaRs,getN), 
                sapply(mergers,getN), rowSums(seqtab.nochim))
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR","merged", "nochim")
 rownames(track) <- sample.names
-write.csv(track, file = "preprocessingresult.csv")
+write.csv(track, file = "preprocessingresult_sf2.csv")
 
 # Assign taxonomy
 ## I'm using the SLIVA database
@@ -113,7 +119,8 @@ download.file(url = "https://zenodo.org/records/4587955/files/silva_species_assi
 taxa <- assignTaxonomy(seqtab.nochim, "silva_nr99_v138.1_train_set.fa.gz", multithread = TRUE)
 taxa <- addSpecies(taxa, "silva_species_assignment_v138.1.fa.gz") # we don't necessarily need to do this since I'm only interested in genus distribution.
 
-write.csv(taxa,file = "taxa.csv")
+write.csv(taxa,file = "taxa_sf2.csv")
+write.csv(seqtab.nochim, file = "seqtab.nochim.csv")
 
 # MOVING ON TO DATA ANALYSIS ##################################
 
