@@ -43,13 +43,13 @@ fnRs <- rm_samples(fnRs,fnFs)
 
 if(Sys.info()['sysname'] == "Linux" || Sys.info()['sysname'] == "Darwin"){
   out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, maxN = 0,
-                       maxLen = 251, minLen = 251,
-                       maxEE = c(2,2),truncQ = 2, rm.phix = TRUE,
+                       maxLen = 251, minLen = 240,
+                       maxEE = c(2,5),truncQ = 2, rm.phix = TRUE,
                        compress = TRUE, multithread = TRUE) 
 } else{
   out <- filterAndTrim(fnFs,filtFs,fnRs,filtRs, maxN = 0,
-                       maxLen = 251, minLen = 251,
-                       maxEE = c(2,2),truncQ = 2, rm.phix = TRUE,
+                       maxLen = 251, minLen = 240,
+                       maxEE = c(2,5),truncQ = 2, rm.phix = TRUE,
                        compress = TRUE, multithread = FALSE) 
 }
 
@@ -64,7 +64,7 @@ filtRs <- filtRs[-notvalidsamples]
 errF <- learnErrors(filtFs, multithread=TRUE)
 errR <- learnErrors(filtRs, multithread=TRUE)
 
-outerrorplot.forward <- plotErrors(errF,nominalQ = TRUE)
+errorplot.forward <- plotErrors(errF,nominalQ = TRUE)
 errorplot.reverse <- plotErrors(errR,nominalQ = TRUE)
 
 # dereplication
@@ -101,7 +101,7 @@ getN <- function(x) sum(getUniques(x))
 track <- cbind(out[-notvalidsamples,], sapply(dadaFs,getN), sapply(dadaRs,getN), 
                sapply(mergers,getN), rowSums(seqtab.nochim))
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR","merged", "nochim")
-rownames(track) <- sample.names
+rownames(track) <- sample.names[-notvalidsamples]
 write.csv(track, file = "preprocessingresult_sf2.csv")
 
 # Assign taxonomy
