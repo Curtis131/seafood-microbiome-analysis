@@ -4,28 +4,69 @@ library(tidyverse)
 library(SRS)
 
 # Load the ASV and taxonomy data
-asv_data <- read.csv("ASV.csv",row.names = 1)
-asv_data <- asv_data[-106,] #remove negative control
-taxonomy_data <- read.csv("taxa.csv",row.names = 1)
-sample_data <- sample_data(read.csv("merge.csv",row.names = 1))
-sample_data <- na.omit(sample_data)
-time <- as.factor(sample_data$time.day.)
-asv_data <- asv_data[match(rownames(sample_data),rownames(asv_data)),]
-asv_data <- t(asv_data)
-asv_data <- as.data.frame(asv_data)
-asv_data_SRS <- SRS(asv_data,277) # what Cmin????
-rownames(asv_data_SRS) <- rownames(asv_data)
-asv_data_SRS <- t(asv_data_SRS)
+asv_data <- read.csv("seqtab.nochim.csv",row.names = 1)
+
+# seperate 2 experiments for salmon & shrimp
+taxonomy_data <- read.csv("taxa_sf2.csv",row.names = 1) 
+metadata <- read.csv("metadatasf2.csv", row.names = 1)
+salmonexp <- metadata %>%
+  filter(treatment %in% c("A","B","E"))
+shrimpexp <- metadata %>%
+  filter(treatment %in% c("C","I","RB"))
+salmon_asv <- asv_data %>%
+  filter(rownames(asv_data) %in% salmonexp$sample)
+shrimp_asv <- asv_data %>%
+  filter(rownames(asv_data) %in% shrimpexp$sample)
+
+# normalization
+salmon_asv_srs <- salmon_asv %>%
+  t() %>%
+  as.data.frame() %>%
+  SRS(Cmin = 5000) %>%
+  t() %>%
+  as.matrix()
+colnames(salmon_asv_srs) <- colnames(salmon_asv)
+
+shrimp_asv_srs <- shrimp_asv %>%
+  t() %>%
+  as.data.frame() %>%
+  SRS(Cmin = 5330) %>%
+  t() %>%
+  as.matrix()
+colnames(shrimp_asv_srs) <- colnames(shrimp_asv)
 
 # Convert taxonomy data to matrix and specify column names for Phyloseq
 taxonomy_matrix <- as.matrix(taxonomy_data)
 colnames(taxonomy_matrix) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 
 # create phyloseq objects
-otu_table <- otu_table(as.matrix(asv_data_SRS), taxa_are_rows = FALSE)
+## shrimp ##
+shrimp_otu_table <- otu_table(as.matrix(shrimp_asv_srs), taxa_are_rows = FALSE)
 tax.table <- tax_table(taxonomy_matrix)
+shrimpexp <- shrimpexp %>%
+  filter(sample %in% rownames(shrimp_asv_srs))
   
-physeq <- phyloseq(otu_table,tax.table,sample_data)
+shrimp_sample <- sample_data(shrimpexp)
+rownames(shrimp_sample) <- shrimp_sample$sample
+
+shrimp <- phyloseq(shrimp_otu_table,tax.table,shrimp_sample)
+
+## salmon ##
+salmon_otu_table <- otu_table(as.matrix(salmon_asv_srs), taxa_are_rows = FALSE)
+salmonexp <- salmonexp %>%
+  filter(sample %in% rownames(salmon_asv_srs))
+
+salmon_sample <- sample_data(salmonexp)
+rownames(salmon_sample) <- salmon_sample$sample
+
+salmon <- phyloseq(salmon_otu_table,tax.table,salmon_sample)
+  
+
+
+
+
+
+
 physeq <- prune_taxa(taxa_sums(physeq) > 0, physeq) # ASV with not counts
 t.genus <- tax_glom(physeq, taxrank = "Genus") # agglomerate genus
 # find top 10 abundence genus
