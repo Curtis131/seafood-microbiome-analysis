@@ -1,21 +1,16 @@
-# Script used to generate experiment metadata 1 $ 2
+library(tibble)
+library(dplyr)
 
-## csv bactericocin treatments
-wd <- "~/Documents/school/Statistical Bioinformatics/term_project"
-setwd(wd)
-path <- paste(wd,"/20240328_095203/Fastq", sep = "")
-
-fnFs <- sort(list.files(path,pattern = "_R1_001.fastq.gz", full.names = TRUE))
-sample.name <- sapply(strsplit(basename(fnFs), "_"), '[',1)
-sample.name <- sort(sample.name[125:198])
-
-time <- sapply(strsplit(sample.name, "-"), '[',2)
-treatment <- sapply(strsplit(sample.name, "-"), '[',1)
-treatment <- sapply(strsplit(sample.name, ""), '[',1)
-treatment <- factor(treatment,levels = c("A","B","C","D","E"),
-       labels = c("control","Nisin","Pediocin","Divergicin","MicrocinJ25"))
-
-
-bacterocin.treatment <- data.frame(sample.name,time,treatment)
-
-write.csv(bacterocin.treatment,"bacterocin_treatment")
+sample.dat <- read.csv("preprocessingresult_sf2.csv",row.name = 1)
+metadat <- as_tibble(rownames(sample.dat))
+metadat <- metadat %>%
+  rename(sample = value) %>%
+  add_column(treatment = 0, day = 0, replicate = 0) %>%
+  mutate(
+    treatment = sapply(strsplit(sample, "-"), '[', 1),
+    day = sapply(strsplit(sample, "-"), '[', 2),
+    # Extracting the last two characters for replicate
+    replicate = substr(sample, nchar(sample) - 2, nchar(sample))
+  )
+         
+write.csv(metadat, file = "metadatasf2.csv")
