@@ -60,16 +60,39 @@ salmon_sample <- sample_data(salmonexp)
 rownames(salmon_sample) <- salmon_sample$sample
 
 salmon <- phyloseq(salmon_otu_table,tax.table,salmon_sample)
+
+# analysis
+## shrimp ##
+shrimp <- prune_taxa(taxa_sums(shrimp) >0, shrimp) # ASV with no counts
+shrimp.genus <- tax_glom(shrimp, taxrank = "Genus") # agglomerate genus 
+shrimp.genus.df <- psmelt(shrimp.genus)
+shrimp.genus.df <- shrimp.genus.df %>%
+  mutate(relative_abundance = sapply(Abundance, function(x) x/sum(Abundance)))
+shrimp.genus.df$Genus <- as.factor(shrimp.genus.df$Genus)
+shrimp.genus.df.ag <- shrimp.genus.df %>%
+  group_by(Sample, Genus) %>%
+  summarize(total_abundance = sum(Abundance), .groups = "drop") %>%
+  group_by(Sample) %>%
+  mutate(total_sample_abundance = sum(total_abundance)) %>%
+  ungroup() %>%
+  mutate(relative_abundance = total_abundance / total_sample_abundance) %>%
+  select(Sample, Genus, total_abundance, relative_abundance) %>%
+  filter(relative_abundance > 0) %>%
+  mutate(Genus = ifelse(relative_abundance < 0.05, "others", as.character(Genus))) %>%
+  group_by(Sample, Genus) %>%
+  summarize(total_abundance = sum(total_abundance), 
+            relative_abundance = sum(relative_abundance), 
+            .groups = 'drop')
   
 
+ggplot(data = shrimp.genus.df.ag,
+       aes(x = Sample, y = relative_abundance, fill = Genus))+
+  geom_bar(aes(),stat = "identity", position = "stack") +
+  coord_flip()
 
 
-
-
-
-physeq <- prune_taxa(taxa_sums(physeq) > 0, physeq) # ASV with not counts
-t.genus <- tax_glom(physeq, taxrank = "Genus") # agglomerate genus
 # find top 10 abundence genus
+
 top10 <- names(sort(taxa_sums(t.genus),decreasing = TRUE))[1:10]
 t.genus.prop <- transform_sample_counts(t.genus,function(x) x/sum(x))
 t.genus.prop.top10 <- prune_taxa(top10,t.genus.prop)
