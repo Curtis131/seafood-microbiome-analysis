@@ -70,203 +70,117 @@ shrimp.genus.df <- shrimp.genus.df %>%
   mutate(relative_abundance = sapply(Abundance, function(x) x/sum(Abundance)))
 shrimp.genus.df$Genus <- as.factor(shrimp.genus.df$Genus)
 shrimp.genus.df.ag <- shrimp.genus.df %>%
-  group_by(Sample, Genus) %>%
+  group_by(Sample, Genus,day,treatment) %>%
   summarize(total_abundance = sum(Abundance), .groups = "drop") %>%
   group_by(Sample) %>%
   mutate(total_sample_abundance = sum(total_abundance)) %>%
   ungroup() %>%
   mutate(relative_abundance = total_abundance / total_sample_abundance) %>%
-  select(Sample, Genus, total_abundance, relative_abundance) %>%
+  select(Sample, day, treatment, Genus,total_abundance, relative_abundance) %>%
   filter(relative_abundance > 0) %>%
-  mutate(Genus = ifelse(relative_abundance < 0.05, "others", as.character(Genus))) %>%
-  group_by(Sample, Genus) %>%
+  mutate(Genus = ifelse(relative_abundance < 0.01, "others", as.character(Genus))) %>%
+  group_by(Sample, Genus,treatment,day) %>%
   summarize(total_abundance = sum(total_abundance), 
             relative_abundance = sum(relative_abundance), 
-            .groups = 'drop')
-  
+            .groups = 'drop') %>%
+  mutate(treatment = factor(treatment))
+shrimp.genus.df.ag$day <- factor(shrimp.genus.df.ag$day,
+                                   levels = c(0,2,4,6,8,10))
+shrimp.genus.df.ag <- arrange(shrimp.genus.df.ag,shrimp.genus.df.ag$day)
+shrimp.genus.df.ag$Sample <- factor(shrimp.genus.df.ag$Sample, 
+                                          levels = unique(shrimp.genus.df.ag$Sample[order(shrimp.genus.df.ag$day)]))
 
+######## abundance  plot ###########
 ggplot(data = shrimp.genus.df.ag,
        aes(x = Sample, y = relative_abundance, fill = Genus))+
   geom_bar(aes(),stat = "identity", position = "stack") +
+  facet_grid(day ~ ., scales = "free_y") +
   coord_flip()
+  
+# or #
+shrimp.genus.df.ag <- shrimp.genus.df.ag %>%
+  mutate(day_treatment = paste(day, treatment, sep = " - "))  # Combine day and treatment
+  
+ggplot(data = shrimp.genus.df.ag %>% subset(day == "0"),
+        aes(x = Sample, y = relative_abundance, fill = Genus)) +
+  geom_bar(stat = "identity", position = "stack") +
+  coord_flip() +
+  facet_wrap(~ day_treatment, scales = "free_y") +  # Facet by combined variable
+  labs(x = "Sample", y = "Relative Abundance", fill = "Genus") +
+  theme_minimal()  # Optional: use a minimal theme for better clarity
 
-
-# find top 10 abundence genus
-
-top10 <- names(sort(taxa_sums(t.genus),decreasing = TRUE))[1:10]
-t.genus.prop <- transform_sample_counts(t.genus,function(x) x/sum(x))
-t.genus.prop.top10 <- prune_taxa(top10,t.genus.prop)
-## plot
-t.genus.prop.top10@sam_data$time.day. <- factor(t.genus.prop.top10@sam_data$time.day.)
-t.genus.prop.top10@sam_data <- t.genus.prop.top10@sam_data[order(t.genus.prop.top10@sam_data$time.day.)]
-t.genus.prop.top10@otu_table <- t.genus.prop.top10@otu_table[match(rownames(t.genus.prop.top10@sam_data),rownames(t.genus.prop.top10@otu_table)),]
-
-abudence_plot <- t.genus.prop.top10 %>%
-  subset_samples(!rownames(t.genus.prop.top10@sam_data) %in% c("C2-0", "A3-3", "D1-6", "E3-6") &
-    treatment %in% c("control")) %>% #"Nisin","Pediocin","Divergicin","MicrocinJ25"
-  plot_bar(fill = "Genus") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
-  facet_grid(time.day.~treatment, scales = "free") +
-  geom_bar(aes(),stat = "identity",position = "stack") +
-  theme_classic() +
-  coord_flip()
-  labs(title = "relative abudence of top 10 genus", 
-       x = "samples", y = "relative abundence")
-
-abudence_plot$data$Sample <- factor(abudence_plot$data$Sample,
-                                    levels = rownames(sample_data),
-                                    ordered = TRUE)
-print(abudence_plot)
-  dev.off()
-
+################
+  
 # Calculate Chao1 diversity
-bacterocin_exp <- subset_samples(physeq, 
-                                 treatment %in% c("control","Nisin","Pediocin","Divergicin","MicrocinJ25"))
+chao1_shrimp <- estimate_richness(shrimp, measures = "Chao1")
+shannon_shrimp <- estimate_richness(shrimp, measures = "Shannon")
+simpson_shrimp <- estimate_richness(shrimp, measures = "Simpson")
+observed_shrimp <- estimate_richness(shrimp, measures = "Observed")
 
-chao1_diversity <- estimate_richness(bacterocin_exp, measures = "Chao1")
+combined_indices_shrimp <- data.frame(Sample = rownames(shannon_shrimp),
+                               Chao1 = chao1_shrimp$Chao1,
+                               Shannon = shannon_shrimp$Shannon,
+                               Simpson = simpson_shrimp$Simpson, 
+                               Observed = observed_shrimp$Observed,
+                               day = shrimp@sam_data$day,
+                               replicate = shrimp@sam_data$replicate,
+                               treatment = shrimp@sam_data$treatment)
 
-# Add sample names as a column
-chao1_diversity$Sample <- rownames(chao1_diversity)
-chao1_diversity$treatment <- bacterocin_exp@sam_data$treatment
-
-# Plot Chao1 diversity
-chao1_plot <- ggplot(chao1_diversity, aes(x = Sample, y = Chao1, fill = treatment)) +
-  geom_bar(stat = "identity")+
-  theme_minimal() +
-  xlab("Sample") +
-  ylab("Chao1 Diversity Index") +
-  coord_flip() +
-  ggtitle("Chao1 Diversity Across Samples")
-
-chao1_plot$data$Sample <- factor(chao1_plot$data$Sample,levels = chao1_plot$data$Sample,
-                                 ordered = TRUE)
-print(chao1_plot)
-# Calculate Shannon diversity
-shannon_diversity <- estimate_richness(bacterocin_exp, measures = "Shannon")
-
-# Add sample names as a column
-shannon_diversity$Sample <- rownames(shannon_diversity)
-shannon_diversity$treatment <- bacterocin_exp@sam_data$treatment
-
-# Plot Shannon diversity
-shannon_plot <- ggplot(shannon_diversity, aes(x = Sample, y = Shannon, fill = treatment)) +
-  coord_flip() +
-  geom_bar(stat = "identity") +
-  theme_minimal() +
-  xlab("Sample") +
-  ylab("Shannon Diversity Index") +
-  ggtitle("Shannon Diversity Across Samples") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))# Adjust text angle for better readability if necessary
-
-shannon_plot$data$Sample <- factor(shannon_plot$data$Sample,levels = shannon_plot$data$Sample,
-                                   ordered = TRUE)
-print(shannon_plot)
-# Calculate Simpson diversity
-simpson_diversity <- estimate_richness(bacterocin_exp, measures = "Simpson")
-
-# Add sample names as a column
-simpson_diversity$Sample <- rownames(simpson_diversity)
-simpson_diversity$treatment <- bacterocin_exp@sam_data$treatment
-# Plot Simpson diversity
-simpson_diversity_plot <- 
-  ggplot(simpson_diversity, aes(x = Sample, y = Simpson, fill = treatment)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  theme_minimal() +
-  xlab("Sample") +
-  ylab("Simpson Diversity Index") +
-  ggtitle("Simpson Diversity Across Samples") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
-
-simpson_diversity_plot$data$Sample <-  factor(simpson_diversity_plot$data$Sample,
-                                              levels = simpson_diversity_plot$data$Sample,
-                                              ordered = TRUE)
-
-print(simpson_diversity_plot)
-# Adjust text angle for better readability if necessary
-
-# Assuming 'physeq' is your phyloseq object
-chao1_diversity <- estimate_richness(bacterocin_exp, measures = "Chao1")
-shannon_diversity <- estimate_richness(bacterocin_exp, measures = "Shannon")
-simpson_diversity <- estimate_richness(bacterocin_exp, measures = "Simpson")
-observed_diversity <- estimate_richness(bacterocin_exp, measures = "Observed")
-
-# Combine all indices into one data frame
-combined_indices <- data.frame(Sample = rownames(chao1_diversity),
-                               Chao1 = chao1_diversity$Chao1,
-                               Shannon = shannon_diversity$Shannon,
-                               Simpson = simpson_diversity$Simpson, 
-                               Observed = observed_diversity$Observed)
-
-# plots
-plot_richness(bacterocin_exp, x = "treatment", measures = "Shannon") +
+shrimp@sam_data$day <- factor(shrimp@sam_data$day,
+                              levels = c(0,2,4,6,8,10))
+plot_richness(shrimp, x = "day", measures = "Shannon") +
   geom_boxplot() +
-  ylab("Shannon") +
-  facet_grid(.~ time.day.)
+  ylab("Shannon")
 
-plot_richness(bacterocin_exp, x = "treatment", measures = "Observed") +
+plot_richness(shrimp, x = "day", measures = "Observed") +
   geom_boxplot() +
-  ylab("Observed") +
-  facet_grid(. ~ time.day.)
+  ylab("Observed")
 
-plot_richness(bacterocin_exp, x = "treatment", measures = "Simpson") +
+plot_richness(shrimp, x = "day", measures = "Simpson") +
   ylab("Simpson") +
-  geom_boxplot() +
-  facet_grid(. ~ time.day., scales = "free_y")
+  geom_boxplot()
 
-plot_richness(bacterocin_exp, x = "treatment", measures = "Chao1") +
+plot_richness(shrimp, x = "day", measures = "Chao1") +
   ylab("Chao1") +
-  geom_boxplot() +
-  facet_grid(. ~ time.day., scales = "free")
-# View the head of the combined table
-head(combined_indices)
+  geom_boxplot()
 
-# Export the combined table to a CSV file
-write.csv(combined_indices, "combined_diversity_indices.csv", row.names = FALSE)
+# take average of replicates, log transformation
+combined_indices_shrimp_trans <- combined_indices_shrimp %>%
+  group_by(day,treatment) %>%
+  summarise(
+    Chao1 = mean(Chao1),
+    Shannon = mean(Shannon),
+    Simpson = mean(Simpson),
+    Observed = mean(Observed)
+  ) %>%
+  mutate(log(Chao1),
+         log(Shannon),
+         log(Simpson),
+         log(Observed)
+         )
+combined_indices_shrimp_trans <- combined_indices_shrimp_trans %>%
+  mutate(`log(Shannon)` = `log(Shannon)` + 1.1703242,
+         `log(Simpson)` = `log(Simpson)` + 2.3112746)
 
+aof.shrimp <- function(x){
+  y <- anova(aov(x ~ as.factor(day), data = combined_indices_shrimp_trans))
+  return(y)
+}
+
+anova(aov(combined_indices_shrimp_trans$`log(Shannon)` ~ as.factor(combined_indices_shrimp_trans$treatment),
+          data = combined_indices_shrimp_trans))
+aof.plot <- function(x,y){
+  plot <- ggplot(combined_indices_shrimp_trans, aes(x = treatment, y = x, fill = treatment)) +
+    geom_boxplot() +
+    # facet_wrap( ~ time, ncol = 2) +
+    theme_classic() + 
+    ylab(colnames(combined_indices_shrimp_trans[y])) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+  return(plot)
+}
 # beta diversity
-bc <- distance(bacterocin_exp, method = "bray")
-
-bc.tibble <- bc %>%
-  as.matrix() %>%
-  as_tibble(rownames = "sample") %>%
-  pivot_longer(-sample) %>%
-  filter(sample < name) %>%
-  mutate(time = as.numeric (str_extract(sample,"(?<=-)\\d+")),
-         treatment = as.vector((str_extract(sample,"^[A-Za-z]")))) %>%
-  # day_c = str_replace(sample, "c.*",""),
-  # day_s = str_replace(sample, "s.*", "")) %>%
-  group_by(time, sample, treatment) %>%
-  summarize(median = median(value))%>%
-  ungroup()
-
-bc.tibble$replicate <- substr(bc.tibble$sample, 2,2)
-
-bc.tibble$time <- sort(bc.tibble$time, decreasing = FALSE)
-
-# add treatment label
-bc.tibble <- bc.tibble %>%
-  mutate(treatment = case_when(
-    treatment == "A" ~ "control",
-    treatment == "B" ~ "Nisin",
-    treatment == "C" ~ "Pediocin",
-    treatment == "D" ~ "Divergicin", 
-    treatment == "E" ~ "MicrocinJ25"
-  ))
-
-## plot
-ggplot(data = bc.tibble, aes(x=time, y=median, color = treatment,
-                             group = paste0(replicate, treatment))) +
-  geom_line(size = 0.25) +
-  geom_smooth(aes(group = treatment), size = 3)
-
-
-ordinate_bc <- ordinate(bacterocin_exp,method = "PCoA", distance = "bray")
-plot_ordination(bacterocin_exp,ordinate_bc, color = "treatment") +
-  geom_point(size = 4) +
-  stat_ellipse(aes(group = treatment))
-
-
-sample_dat_bc <- data.frame(sample_data(bacterocin_exp))
-sample_dat_bc$treatment <- factor(sample_dat_bc$treatment)
-permeanova_result <- adonis2(bc ~ treatment + factor(time.day.), data = sample_dat_bc, permutations = 999)
+bc.shrimp <- as.matrix(distance(shrimp, method = "bray"))
+pcoa_bc_shrimp <- ordinate(shrimp, "PCoA", "bray")
+plot_ordination(shrimp,pcoa_bc_shrimp, color = "day", shape = "treatment")
+# permutation ANOVA test
+permanova_shrimp <- adonis2(bc.shrimp ~ day, data = shrimpexp, permutations = 999)
