@@ -23,36 +23,38 @@ res.microbe <- rcorr(as.matrix(microbes))
 
 corplot.matrix <- res$r[1:10,-c(1:10)]
 
-corrplot(corplot.matrix, diag = FALSE,
+corrplot(corplot.matrix, diag = TRUE,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = FALSE,
+corrplot(res.microbe$r, diag = TRUE,
+         type = "lower"
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 
 ### coho
-data_coho <- read.csv("/home/zys/Documents/seafood-microbiome-analysis/corrlation analysis/abundance_data/abundance_corr_coho.csv",
+data_coho <- read.csv("/home/zys/Documents/seafood-microbiome-analysis/corrlation analysis/abundance_data/abundance_coho.csv",
                       as.is = TRUE)
 data_coho <- data_coho %>%
   filter_all(any_vars(!is.na(.))) %>%
   select_if(~ any(!is.na(.)))
 microbes_coho <- data_coho %>%
-  select(c(Day,Bradyrhizobium, Brochothrix, Carnobacterium, Clostridium.sensu.stricto.1,
+  select(c(Day, Brochothrix, Carnobacterium, Clostridium.sensu.stricto.1,
            Cupriavidus, Latilactobacillus, Leuconostoc, Photobacterium, Pseudomonas,
            Yersinia))
 chem_prop_coho <- data_coho %>%
-  select(-c(Day,Bradyrhizobium, Brochothrix, Carnobacterium, Clostridium.sensu.stricto.1,
+  select(-c(Day, Brochothrix, Carnobacterium, Clostridium.sensu.stricto.1,
            Cupriavidus, Latilactobacillus, Leuconostoc, Photobacterium, Pseudomonas,
            Yersinia))
 res <- rcorr(as.matrix(microbes_coho), as.matrix(chem_prop_coho), type = "spearman")
 res.microbe <- rcorr(as.matrix(microbes_coho))
 
-corplot.matrix <- res$r[1:11,-c(1:11)]
+corplot.matrix <- res$r[1:10,-c(1:10)]
 
-corrplot(corplot.matrix, diag = FALSE,
+corrplot(corplot.matrix, diag = TRUE,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = FALSE,
+corrplot(res.microbe$r, diag = TRUE,
+         type = "lower"
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 
@@ -72,10 +74,11 @@ res <- rcorr(as.matrix(microbes_control), as.matrix(chem_prop_control), type = "
 res.microbe <- rcorr(as.matrix(microbes_control))
 corplot.matrix <- res$r[1:11,-c(1:11)]
 
-corrplot(corplot.matrix, diag = FALSE,
+corrplot(corplot.matrix, diag = TRUE,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = FALSE,
+corrplot(res.microbe$r, diag = TRUE,
+         type = "lower"
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 ### Nisin
@@ -94,9 +97,34 @@ res <- rcorr(as.matrix(microbes_nisin), as.matrix(chem_prop_nisin), type = "spea
 res.microbe <- rcorr(as.matrix(microbes_nisin))
 corplot.matrix <- res$r[1:11,-c(1:11)]
 
-corrplot(corplot.matrix, diag = FALSE,
+corrplot(corplot.matrix, diag = TRUE,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = FALSE,
+corrplot(res.microbe$r, diag = TRUE,
+         type = "lower",
          tl.cex = 0.8,
          mar = c(1,1,1,1))
+### Microcin
+data_microcin <- read.csv("/home/zys/Documents/seafood-microbiome-analysis/corrlation analysis/abundance_data/abundance_trial3_microcin.csv",
+                          as.is = TRUE)
+data_microcin <- data_microcin %>%
+  filter_all(any_vars(!is.na(.))) %>%
+  select_if(~ any(!is.na(.)))
+microbes_microcin <- data_microcin %>%
+  select(c(Day,Aminobacter,Bradyrhizobium,Cupriavidus,Hydrotalea,Mesorhizobium,Pseudaminobacter,
+           Pseudomonas, Ramlibacter,Sphingopyxis,Yersinia))
+chem_prop_microcin <- data_microcin %>%
+  select(-c(Day,Aminobacter,Bradyrhizobium,Cupriavidus,Hydrotalea,Mesorhizobium,Pseudaminobacter,
+            Pseudomonas, Ramlibacter,Sphingopyxis,Yersinia))
+res <- rcorr(as.matrix(microbes_microcin), as.matrix(chem_prop_microcin), type = "spearman")
+res.microbe <- rcorr(as.matrix(microbes_microcin))
+corplot.matrix <- res$r[1:11,-c(1:11)]
+
+corrplot(corplot.matrix, diag = TRUE,
+         tl.cex = 0.8,
+         mar = c(1,1,1,1))
+corrplot(res.microbe$r, diag = TRUE,
+         type = "lower"
+         tl.cex = 0.8,
+         mar = c(1,1,1,1))
+
