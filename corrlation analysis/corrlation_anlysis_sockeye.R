@@ -12,22 +12,43 @@ data_sockeye <- data %>%
 microbes <- data_sockeye %>%
   select(c(Day, Brochothrix, Carnobacterium, Clostridium.sensu.stricto.1,
            Cupriavidus, Latilactobacillus, Leuconostoc, Photobacterium, Pseudomonas,
-           Yersinia))
+           Vibrio, Yersinia))
 chem_prop <- data_sockeye %>%
   select(-c(Day, Brochothrix, Carnobacterium, Clostridium.sensu.stricto.1,
             Cupriavidus, Latilactobacillus, Leuconostoc, Photobacterium, Pseudomonas,
-            Yersinia))
+            Vibrio, Yersinia))
+colnames(chem_prop) <- gsub("^X|Average_", "", colnames(chem_prop))
 
-res <- rcorr(as.matrix(microbes), as.matrix(chem_prop), type = "spearman")
+
+res <- rcorr(as.matrix(microbes), as.matrix(chem_prop), type = "pearson")
 res.microbe <- rcorr(as.matrix(microbes))
+cor_test <-res$P[2:11, -c(1:11)]
+cor_microbe_test <- res.microbe$P
 
-corplot.matrix <- res$r[1:10,-c(1:10)]
+corplot.matrix <- res$r[2:11,-c(1:11)]
 
-corrplot(corplot.matrix, diag = TRUE,
-         tl.cex = 0.8,
-         mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = TRUE,
-         type = "lower"
+corrplot(corplot.matrix, diag = TRUE, method = "square",
+         p.mat = cor_test, 
+         tl.col = "black",
+         addCoef.col = "black",
+         cl.cex = 0.4,
+         number.cex = 0.4,
+         tl.cex = 0.6, 
+         insig = "label_sig",
+         sig.level = c(0.001, 0.01, 0.05),
+         pch.col = "yellow",
+         pch.cex = 1)
+
+corrplot(res.microbe$r, diag = TRUE, method = "square",
+         type = "lower",
+         tl.col = "black",
+         p.mat = cor_microbe_test,
+         addCoef.col = "black",
+         number.cex = 0.4,
+         sig.level = c(0.001, 0.01, 0.05),
+         insig = "label_sig",
+         pch.col = "yellow",
+         pch.cex = 1,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 
@@ -44,17 +65,39 @@ microbes_coho <- data_coho %>%
 chem_prop_coho <- data_coho %>%
   select(-c(Day, Brochothrix, Carnobacterium, Clostridium.sensu.stricto.1,
            Cupriavidus, Latilactobacillus, Leuconostoc, Photobacterium, Pseudomonas,
-           Yersinia))
-res <- rcorr(as.matrix(microbes_coho), as.matrix(chem_prop_coho), type = "spearman")
+           Vibrio, Yersinia))
+colnames(chem_prop_coho) <- gsub("^X|Average_", "", colnames(chem_prop_coho))
+
+
+res <- rcorr(as.matrix(microbes_coho), as.matrix(chem_prop_coho), type = "pearson")
 res.microbe <- rcorr(as.matrix(microbes_coho))
+cor_test <-res$P[2:11, -c(1:11)]
+cor_microbe_test <- res.microbe$P
 
-corplot.matrix <- res$r[1:10,-c(1:10)]
+corplot.matrix <- res$r[2:11,-c(1:11)]
 
-corrplot(corplot.matrix, diag = TRUE,
-         tl.cex = 0.8,
-         mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = TRUE,
-         type = "lower"
+corrplot(corplot.matrix, diag = TRUE, method = "square",
+         p.mat = cor_test, 
+         tl.col = "black",
+         addCoef.col = "black",
+         cl.cex = 0.4,
+         number.cex = 0.4,
+         tl.cex = 0.6, 
+         insig = "label_sig",
+         sig.level = c(0.001, 0.01, 0.05),
+         pch.col = "yellow",
+         pch.cex = 1)
+
+corrplot(res.microbe$r, diag = TRUE, method = "square",
+         type = "lower",
+         tl.col = "black",
+         p.mat = cor_microbe_test,
+         addCoef.col = "black",
+         number.cex = 0.4,
+         sig.level = c(0.001, 0.01, 0.05),
+         insig = "label_sig",
+         pch.col = "yellow",
+         pch.cex = 1,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 
@@ -70,15 +113,38 @@ microbes_control <- data_control %>%
 chem_prop_control <- data_control %>%
   select(-c(Day,Aminobacter,Bradyrhizobium,Cupriavidus,Hydrotalea,Mesorhizobium,Pseudaminobacter,
             Pseudomonas, Ramlibacter,Sphingopyxis,Yersinia))
-res <- rcorr(as.matrix(microbes_control), as.matrix(chem_prop_control), type = "spearman")
-res.microbe <- rcorr(as.matrix(microbes_control))
-corplot.matrix <- res$r[1:11,-c(1:11)]
+colnames(chem_prop_control) <- gsub("^X|Average_", "", colnames(chem_prop_control))
 
-corrplot(corplot.matrix, diag = TRUE,
-         tl.cex = 0.8,
-         mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = TRUE,
-         type = "lower"
+
+res <- rcorr(as.matrix(microbes_control), as.matrix(chem_prop_control), type = "pearson")
+res.microbe <- rcorr(as.matrix(microbes_control))
+cor_test <-res$P[2:11, -c(1:11)]
+cor_microbe_test <- res.microbe$P
+
+corplot.matrix <- res$r[2:11,-c(1:11)]
+
+corrplot(corplot.matrix, diag = TRUE, method = "square",
+         p.mat = cor_test, 
+         tl.col = "black",
+         addCoef.col = "black",
+         cl.cex = 0.4,
+         number.cex = 0.4,
+         tl.cex = 0.6, 
+         insig = "label_sig",
+         sig.level = c(0.001, 0.01, 0.05),
+         pch.col = "yellow",
+         pch.cex = 1)
+
+corrplot(res.microbe$r, diag = TRUE, method = "square",
+         type = "lower",
+         tl.col = "black",
+         p.mat = cor_microbe_test,
+         addCoef.col = "black",
+         number.cex = 0.4,
+         sig.level = c(0.001, 0.01, 0.05),
+         insig = "label_sig",
+         pch.col = "yellow",
+         pch.cex = 1,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 ### Nisin
@@ -93,15 +159,38 @@ microbes_nisin <- data_nisin %>%
 chem_prop_nisin<- data_nisin%>%
   select(-c(Day,Aminobacter,Bradyrhizobium,Cupriavidus,Hydrotalea,Mesorhizobium,Pseudaminobacter,
             Pseudomonas, Ramlibacter,Sphingopyxis,Yersinia))
-res <- rcorr(as.matrix(microbes_nisin), as.matrix(chem_prop_nisin), type = "spearman")
-res.microbe <- rcorr(as.matrix(microbes_nisin))
-corplot.matrix <- res$r[1:11,-c(1:11)]
+colnames(chem_prop_nisin) <- gsub("^X|Average_", "", colnames(chem_prop_nisin))
 
-corrplot(corplot.matrix, diag = TRUE,
-         tl.cex = 0.8,
-         mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = TRUE,
+
+res <- rcorr(as.matrix(microbes_nisin), as.matrix(chem_prop_nisin), type = "pearson")
+res.microbe <- rcorr(as.matrix(microbes_nisin))
+cor_test <-res$P[2:11, -c(1:11)]
+cor_microbe_test <- res.microbe$P
+
+corplot.matrix <- res$r[2:11,-c(1:11)]
+
+corrplot(corplot.matrix, diag = TRUE, method = "square",
+         p.mat = cor_test, 
+         tl.col = "black",
+         addCoef.col = "black",
+         cl.cex = 0.4,
+         number.cex = 0.4,
+         tl.cex = 0.6, 
+         insig = "label_sig",
+         sig.level = c(0.001, 0.01, 0.05),
+         pch.col = "yellow",
+         pch.cex = 1)
+
+corrplot(res.microbe$r, diag = TRUE, method = "square",
          type = "lower",
+         tl.col = "black",
+         p.mat = cor_microbe_test,
+         addCoef.col = "black",
+         number.cex = 0.4,
+         sig.level = c(0.001, 0.01, 0.05),
+         insig = "label_sig",
+         pch.col = "yellow",
+         pch.cex = 1,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 ### Microcin
@@ -116,15 +205,38 @@ microbes_microcin <- data_microcin %>%
 chem_prop_microcin <- data_microcin %>%
   select(-c(Day,Aminobacter,Bradyrhizobium,Cupriavidus,Hydrotalea,Mesorhizobium,Pseudaminobacter,
             Pseudomonas, Ramlibacter,Sphingopyxis,Yersinia))
-res <- rcorr(as.matrix(microbes_microcin), as.matrix(chem_prop_microcin), type = "spearman")
-res.microbe <- rcorr(as.matrix(microbes_microcin))
-corplot.matrix <- res$r[1:11,-c(1:11)]
+colnames(chem_prop_microcin) <- gsub("^X|Average_", "", colnames(chem_prop_microcin))
 
-corrplot(corplot.matrix, diag = TRUE,
-         tl.cex = 0.8,
-         mar = c(1,1,1,1))
-corrplot(res.microbe$r, diag = TRUE,
-         type = "lower"
+
+res <- rcorr(as.matrix(microbes_microcin), as.matrix(chem_prop_microcin), type = "pearson")
+res.microbe <- rcorr(as.matrix(microbes_microcin))
+cor_test <-res$P[2:11, -c(1:11)]
+cor_microbe_test <- res.microbe$P
+
+corplot.matrix <- res$r[2:11,-c(1:11)]
+
+corrplot(corplot.matrix, diag = TRUE, method = "square",
+         p.mat = cor_test, 
+         tl.col = "black",
+         addCoef.col = "black",
+         cl.cex = 0.4,
+         number.cex = 0.4,
+         tl.cex = 0.6, 
+         insig = "label_sig",
+         sig.level = c(0.001, 0.01, 0.05),
+         pch.col = "yellow",
+         pch.cex = 1)
+
+corrplot(res.microbe$r, diag = TRUE, method = "square",
+         type = "lower",
+         tl.col = "black",
+         p.mat = cor_microbe_test,
+         addCoef.col = "black",
+         number.cex = 0.4,
+         sig.level = c(0.001, 0.01, 0.05),
+         insig = "label_sig",
+         pch.col = "yellow",
+         pch.cex = 1,
          tl.cex = 0.8,
          mar = c(1,1,1,1))
 
